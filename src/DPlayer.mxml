@@ -1,0 +1,614 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx" width="874" height="738" backgroundColor="#FFFFFF"
+					   creationComplete="init()">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		<mx:HTTPService id="songService" showBusyCursor="true" result="recieved()" url="songList.xml" />
+		<mx:HTTPService id="songServiceFr" showBusyCursor="true" result="recievedFr()" url="songListFr.xml" />
+		
+		<fx:String id="htmlZarlig">
+			<![CDATA[
+				<iframe frameborder="0" src="http://purevtsooj.com/zarlig.html" width="250" height="270" sandboxRoot="http://purevtsooj.com/" documentRoot="http://purevtsooj.com/" scrolling="no"></iframe>
+			]]>
+		</fx:String>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.net.navigateToURL;
+			import flash.sampler.NewObjectSample;
+			
+			import mx.collections.ArrayCollection;
+			import mx.collections.XMLListCollection;
+			import mx.controls.Alert;
+			
+			private var dp:Object;
+			
+			import flash.display.Shape;
+			import flash.display.Sprite;
+			import flash.errors.IOError;
+			import flash.events.*;
+			import flash.filters.*;
+			import flash.geom.*;
+			import flash.media.Sound;
+			import flash.media.SoundChannel;
+			import flash.media.SoundMixer;
+			import flash.media.SoundTransform;
+			import flash.net.URLRequest;
+			import flash.text.TextField;
+			import flash.text.TextFormat;
+			import flash.utils.*;
+			
+			
+			[Bindable] public var arrSongsMN:ArrayCollection;
+			[Bindable] public var arrSongsFr:ArrayCollection;
+			[Bindable] public var arrSongsFav:ArrayCollection;
+			
+			public var soundChanel:SoundChannel;
+			public var activeTab:int = 0;
+			
+			public var currentSongArtist:String = "";
+			public var currentSongTitle:String = "";
+			public var currentSongPath:String = "";
+			
+			private function init():void{
+				
+				//html_loader.htmlLoader.placeLoadStringContentInApplicationSandbox =true;
+				//html_loader.htmlText = htmlZarlig;
+				
+				soundChanel = new SoundChannel();
+				var someTransform:SoundTransform = new SoundTransform(slider_vol.value);
+				soundChanel.soundTransform = someTransform;
+				
+				songService.send();
+				songServiceFr.send();
+				recievedFav();
+			}
+			
+			public function play():void{
+				if(tab_nav.selectedIndex == 0){
+					if(grid_mn.selectedItem != null){
+						activeTab = tab_nav.selectedIndex;
+						currentSongArtist = grid_mn.selectedItem.col1;
+						currentSongTitle = grid_mn.selectedItem.col2;
+						currentSongPath = grid_mn.selectedItem.col3;
+						label_songname.text = currentSongArtist + ": " + currentSongTitle
+						txt_lyrics.text = grid_mn.selectedItem.col4;
+						
+						soundChanel.stop();
+						var nsound = new Sound();
+						nsound.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
+						nsound.addEventListener(Event.SOUND_COMPLETE, onSoundLoaded);
+						nsound.load(new URLRequest(grid_mn.selectedItem.col3.toString()));
+						soundChanel = nsound.play(0); 
+					}
+				}
+				else if(tab_nav.selectedIndex == 1){
+					if(grid_fr.selectedItem != null){
+						activeTab = tab_nav.selectedIndex;
+						currentSongArtist = grid_fr.selectedItem.col1;
+						currentSongTitle = grid_fr.selectedItem.col2;
+						currentSongPath = grid_fr.selectedItem.col3;
+						label_songname.text = currentSongArtist + ": " + currentSongTitle
+						txt_lyrics.text = grid_fr.selectedItem.col4;
+						
+						soundChanel.stop();
+						var nsound = new Sound();
+						nsound.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
+						nsound.addEventListener(Event.SOUND_COMPLETE, onSoundLoaded);
+						nsound.load(new URLRequest(grid_fr.selectedItem.col3.toString()));
+						soundChanel = nsound.play(0); 
+					}
+				}
+				else if(tab_nav.selectedIndex == 2){
+					if(grid_fav.selectedItem != null){
+						activeTab = tab_nav.selectedIndex;
+						currentSongArtist = grid_fav.selectedItem.col1;
+						currentSongTitle = grid_fav.selectedItem.col2;
+						currentSongPath = grid_fav.selectedItem.col3;
+						label_songname.text = currentSongArtist + ": " + currentSongTitle
+						txt_lyrics.text = grid_fav.selectedItem.col4;
+							
+						soundChanel.stop();
+						var nsound = new Sound();
+						nsound.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
+						nsound.addEventListener(Event.SOUND_COMPLETE, onSoundLoaded);
+						nsound.load(new URLRequest(grid_fav.selectedItem.col3.toString()));
+						soundChanel = nsound.play(0); 
+					}
+				}
+			}
+			
+			public function onSoundLoaded(event:Event):void
+			{
+				try{
+					var songIndex:int = 0;
+					var obj:Object = new Object();
+					soundChanel.stop();
+					if(activeTab == 0){
+						obj.col1 = currentSongArtist;
+						obj.col2 = currentSongTitle;
+						obj.col3 = currentSongPath;
+						obj.col4 = txt_lyrics.text;
+						//var cindex:int = arrSongsMN.getItemIndex(obj);
+						var cindex:int = getIndexAC(arrSongsMN, currentSongPath);
+						var nsound = new Sound();
+						nsound.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
+						nsound.addEventListener(Event.SOUND_COMPLETE, onSoundLoaded);
+						
+						if(cindex == arrSongsMN.length-1){
+							nsound.load(new URLRequest(arrSongsMN.getItemAt(0).col3.toString()));
+							
+							currentSongArtist = arrSongsMN.getItemAt(0).col1.toString();
+							currentSongTitle = arrSongsMN.getItemAt(0).col2.toString();
+							currentSongPath = arrSongsMN.getItemAt(0).col3.toString();
+							label_songname.text = currentSongArtist + ": " + currentSongTitle
+						}
+						else{
+							nsound.load(new URLRequest(arrSongsMN.getItemAt(cindex+1).col3.toString()));
+							
+							currentSongArtist = arrSongsMN.getItemAt(cindex+1).col1.toString();
+							currentSongTitle = arrSongsMN.getItemAt(cindex+1).col2.toString();
+							currentSongPath = arrSongsMN.getItemAt(cindex+1).col3.toString();
+							label_songname.text = currentSongArtist + ": " + currentSongTitle
+						}
+						soundChanel = nsound.play(0);
+					}
+					
+					
+					if(activeTab == 1){
+						obj.col1 = currentSongArtist;
+						obj.col2 = currentSongTitle;
+						obj.col3 = currentSongPath;
+						obj.col4 = txt_lyrics.text;
+						//var cindex:int = arrSongsFr.getItemIndex(obj);
+						var cindex:int = getIndexAC(arrSongsFr, currentSongPath);
+						var nsound = new Sound();
+						nsound.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
+						nsound.addEventListener(Event.SOUND_COMPLETE, onSoundLoaded);
+						
+						if(cindex == arrSongsFr.length-1){
+							nsound.load(new URLRequest(arrSongsFr.getItemAt(0).col3.toString()));
+							
+							currentSongArtist = arrSongsFr.getItemAt(0).col1.toString();
+							currentSongTitle = arrSongsFr.getItemAt(0).col2.toString();
+							currentSongPath = arrSongsFr.getItemAt(0).col3.toString();
+							label_songname.text = currentSongArtist + ": " + currentSongTitle
+						}
+						else{
+							nsound.load(new URLRequest(arrSongsFr.getItemAt(cindex+1).col3.toString()));
+							
+							currentSongArtist = arrSongsFr.getItemAt(cindex+1).col1.toString();
+							currentSongTitle = arrSongsFr.getItemAt(cindex+1).col2.toString();
+							currentSongPath = arrSongsFr.getItemAt(cindex+1).col3.toString();
+							label_songname.text = currentSongArtist + ": " + currentSongTitle
+						}
+						soundChanel = nsound.play(0);
+					}
+					
+					
+					if(activeTab == 2){
+						obj.col1 = currentSongArtist;
+						obj.col2 = currentSongTitle;
+						obj.col3 = currentSongPath;
+						obj.col4 = txt_lyrics.text;
+						//var cindex:int = arrSongsFav.getItemIndex(obj);
+						var cindex:int = getIndexAC(arrSongsFav, currentSongPath);
+						var nsound = new Sound();
+						nsound.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
+						nsound.addEventListener(Event.SOUND_COMPLETE, onSoundLoaded);
+						
+						if(cindex == arrSongsFav.length-1){
+							nsound.load(new URLRequest(arrSongsFav.getItemAt(0).col3.toString()));
+							
+							currentSongArtist = arrSongsFav.getItemAt(0).col1.toString();
+							currentSongTitle = arrSongsFav.getItemAt(0).col2.toString();
+							currentSongPath = arrSongsFav.getItemAt(0).col3.toString();
+							label_songname.text = currentSongArtist + ": " + currentSongTitle
+						}
+						else{
+							nsound.load(new URLRequest(arrSongsFav.getItemAt(cindex+1).col3.toString()));
+							
+							currentSongArtist = arrSongsFav.getItemAt(cindex+1).col1.toString();
+							currentSongTitle = arrSongsFav.getItemAt(cindex+1).col2.toString();
+							currentSongPath = arrSongsFav.getItemAt(cindex+1).col3.toString();
+							label_songname.text = currentSongArtist + ": " + currentSongTitle
+						}
+						soundChanel = nsound.play(0);
+					}
+				}
+				catch(e:Error){
+					label_songname.text = e.message;
+				}
+			}
+			
+			
+			
+			public function playPrevSong():void
+			{
+				try{
+					var songIndex:int = 0;
+					var obj:Object = new Object();
+					soundChanel.stop();
+					if(activeTab == 0){
+						obj.col1 = currentSongArtist;
+						obj.col2 = currentSongTitle;
+						obj.col3 = currentSongPath;
+						obj.col4 = txt_lyrics.text;
+						//var cindex:int = arrSongsMN.getItemIndex(obj);
+						var cindex:int = getIndexAC(arrSongsMN, currentSongPath);
+						var nsound = new Sound();
+						nsound.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
+						nsound.addEventListener(Event.SOUND_COMPLETE, onSoundLoaded);
+						
+						if(cindex == 0){
+							nsound.load(new URLRequest(arrSongsMN.getItemAt(arrSongsMN.length-1).col3.toString()));
+							
+							currentSongArtist = arrSongsMN.getItemAt(arrSongsMN.length-1).col1.toString();
+							currentSongTitle = arrSongsMN.getItemAt(arrSongsMN.length-1).col2.toString();
+							currentSongPath = arrSongsMN.getItemAt(arrSongsMN.length-1).col3.toString();
+							label_songname.text = currentSongArtist + ": " + currentSongTitle;
+						}
+						else{
+							nsound.load(new URLRequest(arrSongsMN.getItemAt(cindex-1).col3.toString()));
+							
+							currentSongArtist = arrSongsMN.getItemAt(cindex-1).col1.toString();
+							currentSongTitle = arrSongsMN.getItemAt(cindex-1).col2.toString();
+							currentSongPath = arrSongsMN.getItemAt(cindex-1).col3.toString();
+							label_songname.text = currentSongArtist + ": " + currentSongTitle;
+						}
+						soundChanel = nsound.play(0);
+					}
+					
+					
+					if(activeTab == 1){
+						obj.col1 = currentSongArtist;
+						obj.col2 = currentSongTitle;
+						obj.col3 = currentSongPath;
+						obj.col4 = txt_lyrics.text;
+						//var cindex:int = arrSongsFr.getItemIndex(obj);
+						var cindex:int = getIndexAC(arrSongsFr, currentSongPath);
+						var nsound = new Sound();
+						nsound.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
+						nsound.addEventListener(Event.SOUND_COMPLETE, onSoundLoaded);
+						
+						if(cindex == 0){
+							nsound.load(new URLRequest(arrSongsFr.getItemAt(arrSongsFr.length-1).col3.toString()));
+							
+							currentSongArtist = arrSongsFr.getItemAt(arrSongsFr.length-1).col1.toString();
+							currentSongTitle = arrSongsFr.getItemAt(arrSongsFr.length-1).col2.toString();
+							currentSongPath = arrSongsFr.getItemAt(arrSongsFr.length-1).col3.toString();
+							label_songname.text = currentSongArtist + ": " + currentSongTitle;
+						}
+						else{
+							nsound.load(new URLRequest(arrSongsFr.getItemAt(cindex-1).col3.toString()));
+							
+							currentSongArtist = arrSongsFr.getItemAt(cindex-1).col1.toString();
+							currentSongTitle = arrSongsFr.getItemAt(cindex-1).col2.toString();
+							currentSongPath = arrSongsFr.getItemAt(cindex-1).col3.toString();
+							label_songname.text = currentSongArtist + ": " + currentSongTitle;
+						}
+						soundChanel = nsound.play(0);
+					}
+					
+					
+					if(activeTab == 2){
+						obj.col1 = currentSongArtist;
+						obj.col2 = currentSongTitle;
+						obj.col3 = currentSongPath;
+						obj.col4 = txt_lyrics.text;
+						//var cindex:int = arrSongsFav.getItemIndex(obj);
+						var cindex:int = getIndexAC(arrSongsFav, currentSongPath);
+						var nsound = new Sound();
+						nsound.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
+						nsound.addEventListener(Event.SOUND_COMPLETE, onSoundLoaded);
+						
+						if(cindex == 0){
+							nsound.load(new URLRequest(arrSongsFav.getItemAt(arrSongsFav.length-1).col3.toString()));
+							
+							currentSongArtist = arrSongsFav.getItemAt(arrSongsFav.length-1).col1.toString();
+							currentSongTitle = arrSongsFav.getItemAt(arrSongsFav.length-1).col2.toString();
+							currentSongPath = arrSongsFav.getItemAt(arrSongsFav.length-1).col3.toString();
+							label_songname.text = currentSongArtist + ": " + currentSongTitle;
+						}
+						else{
+							nsound.load(new URLRequest(arrSongsFav.getItemAt(cindex-1).col3.toString()));
+							
+							currentSongArtist = arrSongsFav.getItemAt(cindex-1).col1.toString();
+							currentSongTitle = arrSongsFav.getItemAt(cindex-1).col2.toString();
+							currentSongPath = arrSongsFav.getItemAt(cindex-1).col3.toString();
+							label_songname.text = currentSongArtist + ": " + currentSongTitle;
+						}
+						soundChanel = nsound.play(0);
+					}
+				}
+				catch(e:Error){
+					label_songname.text = e.message;
+				}
+			}
+			
+			
+			
+			public function addFavoriteSong():void{
+				
+				try{
+					var resText:String = "<smbn>";
+					for(var i:int = 0; i<arrSongsFav.length; i++){
+						resText += "<song>";
+						resText += "<artist>"+arrSongsFav.getItemAt(i).col1+"</artist>";
+						resText += "<title>"+arrSongsFav.getItemAt(i).col2.toString()+"</title>";
+						resText += "<path>"+arrSongsFav.getItemAt(i).col3.toString()+"</path>";
+						resText += "<lyrics>"+arrSongsFav.getItemAt(i).col4.toString()+"</lyrics>";
+						resText += "</song>";
+					}
+					
+					if(tab_nav.selectedIndex == 0){
+						resText += "<song>";
+						resText += "<artist>"+grid_mn.selectedItem.col1+"</artist>";
+						resText += "<title>"+grid_mn.selectedItem.col2.toString()+"</title>";
+						resText += "<path>"+grid_mn.selectedItem.col3.toString()+"</path>";
+						resText += "<lyrics>"+grid_mn.selectedItem.col4 + "</lyrics>";
+						resText += "</song>";
+					}
+					if(tab_nav.selectedIndex == 1){
+						resText += "<song>";
+						resText += "<artist>"+grid_fr.selectedItem.col1+"</artist>";
+						resText += "<title>"+grid_fr.selectedItem.col2.toString()+"</title>";
+						resText += "<path>"+grid_fr.selectedItem.col3.toString()+"</path>";
+						resText += "<lyrics>"+grid_fr.selectedItem.col4+"</lyrics>";
+						resText += "</song>";
+					}
+					resText += "</smbn>";
+					
+					var file:File = new File('app-storage:/favlist.data');
+					            var stream:FileStream = new FileStream()
+					            stream.open(file, FileMode.WRITE);
+					            var str:String = resText;
+					            str = str.replace(/\r/g, File.lineEnding);
+					            stream.writeUTFBytes(str);
+					            stream.close();
+					recievedFav();
+				}
+				catch(e:Error){
+					label_songname.text = e.message;
+				}
+			}
+			
+			public function removeFavItem():void{
+				arrSongsFav.removeItemAt(grid_fav.selectedIndex);
+				var resText:String = "<smbn>";
+				for(var i:int = 0; i<arrSongsFav.length; i++){
+					resText += "<song>";
+					resText += "<artist>"+arrSongsFav.getItemAt(i).col1.toString()+"</artist>";
+					resText += "<title>"+arrSongsFav.getItemAt(i).col2.toString()+"</title>";
+					resText += "<path>"+arrSongsFav.getItemAt(i).col3.toString()+"</path>";
+					resText += "<lyrics>"+arrSongsFav.getItemAt(i).col4.toString()+"</lyrics>";
+					resText += "</song>";
+				}
+				resText += "</smbn>";
+				
+				var file:File = new File('app-storage:/favlist.data');
+				            var stream:FileStream = new FileStream()
+				            stream.open(file, FileMode.WRITE);
+				            var str:String = resText;
+				            str = str.replace(/\r/g, File.lineEnding);
+				            stream.writeUTFBytes(str);
+				            stream.close();
+				recievedFav();
+			}
+			
+			//Mongolian songs
+			private function recieved():void{
+				
+				if (songService.lastResult.song!=undefined) {
+					arrSongsMN = new ArrayCollection();
+					for (var i:Number=0; i<songService.lastResult.song.length; i++) {
+						//aryTemp.push({value: songService.lastResult.song[i].name, label: songService.lastResult.song[i].name, data: songService.lastResult.song[i].data});
+						var obj:Object = new Object();
+						obj.col1 = songService.lastResult.song[i].artist;
+						obj.col2 = songService.lastResult.song[i].title;
+						obj.col3 = songService.lastResult.song[i].path;
+						obj.col4 = songService.lastResult.song[i].lyrics;
+						
+						arrSongsMN.addItem(obj);
+					}
+				}
+			}
+			
+			//Foriegn songs
+			private function recievedFr():void{
+				
+				if (songServiceFr.lastResult.song!=undefined) {
+					arrSongsFr = new ArrayCollection();
+					for (var i:Number=0; i<songServiceFr.lastResult.song.length; i++) {
+						//aryTemp.push({value: songService.lastResult.song[i].name, label: songService.lastResult.song[i].name, data: songService.lastResult.song[i].data});
+						var obj:Object = new Object();
+						obj.col1 = songServiceFr.lastResult.song[i].artist;
+						obj.col2 = songServiceFr.lastResult.song[i].title;
+						obj.col3 = songServiceFr.lastResult.song[i].path;
+						obj.col4 = songServiceFr.lastResult.song[i].lyrics;
+						
+						arrSongsFr.addItem(obj);
+					}
+				}
+			}
+			
+			//Favorite songs
+			private function recievedFav():void{
+				arrSongsFav = new ArrayCollection();
+				
+				var file:File = new File('app-storage:/favlist.data');
+				if(file.exists){
+					var stream:FileStream = new FileStream()
+					stream.open(file, FileMode.READ);
+					var str:String = stream.readUTFBytes(stream.bytesAvailable);
+					stream.close();
+					str = str.replace(File.lineEnding, "\n");
+					
+					var myXML:XML = new XML(str);
+					var xmlList:XMLList;
+					xmlList = myXML.song;
+					var xmlListCollection:XMLListCollection = new XMLListCollection(xmlList);
+					var i:int;
+					
+					for(i=0; i<xmlListCollection.length; i++){
+						
+						var obj:Object = new Object();
+						obj.col1 = xmlListCollection.getItemAt(i).artist;
+						obj.col2 = xmlListCollection.getItemAt(i).title;
+						obj.col3 = xmlListCollection.getItemAt(i).path;
+						obj.col4 = xmlListCollection.getItemAt(i).lyrics;
+						
+						arrSongsFav.addItem(obj);
+					}
+				}
+			}
+			
+			
+			private function ioErrorHandler(event: IOErrorEvent): void{
+				label_songname.text = event.text;
+			}
+			
+			
+			public function gotoZarlig():void{
+				navigateToURL(new URLRequest('http://zarlig.biz/'));
+			}
+			
+			public function gotoPurevtsoojCom():void{
+				navigateToURL(new URLRequest('http://purevtsooj.com/'));
+			}
+			
+			public function changeVolume():void{
+				var someTransform:SoundTransform = new SoundTransform(slider_vol.value);
+				soundChanel.soundTransform = someTransform;
+			}
+			
+			
+			public function getIndexAC(arr:ArrayCollection, path:String):int{
+				for(var i:int = 0; i<arr.length; i++){
+					if(path == arr.getItemAt(i).col3){
+						return i;
+					}
+				}
+				return 0;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<mx:Image width="100%" height="100%" source="assets/images/pattern.png" scaleContent="false"/>
+	<s:Label x="12" y="297" text="Дууны үг"/>
+	<s:TextArea x="10" y="312" width="250" height="311" contentBackgroundColor="#FFFFFF" color="#000000" contentBackgroundAlpha="0.0" borderVisible="true" fontSize="11" id="txt_lyrics" editable="false"/>
+	<mx:Image x="-14" y="631" height="91" width="925" source="assets/images/label.png" scaleContent="false"/>
+	
+	<s:Label x="12" y="8" text="Зарлиг"/>
+	<mx:TabNavigator id="tab_nav" x="268" y="-1" width="596" height="624" contentBackgroundAlpha="0.0" backgroundAlpha="0.0" fontSize="12">
+		<s:NavigatorContent label="Монгол дуу" width="100%" height="100%">
+			<s:VGroup width="100%" height="100%" paddingTop="-10">
+				<mx:DataGrid id="grid_mn" borderVisible="false" width="100%" height="100%" dataProvider="{arrSongsMN}">
+					<mx:columns>
+						<mx:DataGridColumn headerText="Дуучин" dataField="col1"/>
+						<mx:DataGridColumn headerText="Дууны нэр" dataField="col2"/>
+						<mx:DataGridColumn headerText="Зам" dataField="col3" visible="false"/>
+						<mx:DataGridColumn headerText="Дууны үг" dataField="col4" visible="false"/>
+						<mx:DataGridColumn headerText="Тоглуулах" width="70">
+							<mx:itemRenderer>
+								<fx:Component>
+									<mx:HBox textAlign="center" paddingLeft="5" horizontalScrollPolicy="off">
+										<mx:LinkButton label="" icon="@Embed('assets/images/bullet_go.png')" click="outerDocument.play()" />
+									</mx:HBox>
+								</fx:Component>
+							</mx:itemRenderer>
+						</mx:DataGridColumn>
+						<mx:DataGridColumn headerText="Дажгүй" width="50">
+							<mx:itemRenderer>
+								<fx:Component>
+									<mx:HBox textAlign="center" paddingLeft="5" horizontalScrollPolicy="off">
+										<mx:LinkButton label="" icon="@Embed('assets/images/bullet_star.png')" click="outerDocument.addFavoriteSong()" />
+									</mx:HBox>
+								</fx:Component>
+							</mx:itemRenderer>
+						</mx:DataGridColumn>
+					</mx:columns>
+				</mx:DataGrid>
+			</s:VGroup>
+		</s:NavigatorContent>
+		<s:NavigatorContent label="Гадаад дуу" width="100%" height="100%">
+			<s:VGroup width="100%" height="100%" paddingTop="-10">
+				<mx:DataGrid id="grid_fr" borderVisible="false" width="100%" height="100%" dataProvider="{arrSongsFr}">
+					<mx:columns>
+						<mx:DataGridColumn headerText="Дуучин" dataField="col1"/>
+						<mx:DataGridColumn headerText="Дууны нэр" dataField="col2"/>
+						<mx:DataGridColumn headerText="Зам" dataField="col3" visible="false"/>
+						<mx:DataGridColumn headerText="Дууны үг" dataField="col4" visible="false"/>
+						<mx:DataGridColumn headerText="Тоглуулах" width="70">
+							<mx:itemRenderer>
+								<fx:Component>
+									<mx:HBox textAlign="center" paddingLeft="5" horizontalScrollPolicy="off">
+										<mx:LinkButton label="" icon="@Embed('assets/images/bullet_go.png')" click="outerDocument.play()" />
+									</mx:HBox>
+								</fx:Component>
+							</mx:itemRenderer>
+						</mx:DataGridColumn>
+						<mx:DataGridColumn headerText="Дажгүй" width="50">
+							<mx:itemRenderer>
+								<fx:Component>
+									<mx:HBox textAlign="center" paddingLeft="5" horizontalScrollPolicy="off">
+										<mx:LinkButton label="" icon="@Embed('assets/images/bullet_star.png')" click="outerDocument.addFavoriteSong()" />
+									</mx:HBox>
+								</fx:Component>
+							</mx:itemRenderer>
+						</mx:DataGridColumn>
+					</mx:columns>
+				</mx:DataGrid>
+			</s:VGroup>
+		</s:NavigatorContent>
+		<s:NavigatorContent label="Дажгүй" width="100%" height="100%">
+			<s:VGroup width="100%" height="100%" paddingTop="-10">
+				<mx:DataGrid id="grid_fav" borderVisible="false" width="100%" height="100%" dataProvider="{arrSongsFav}">
+					<mx:columns>
+						<mx:DataGridColumn headerText="Дуучин" dataField="col1"/>
+						<mx:DataGridColumn headerText="Дууны нэр" dataField="col2"/>
+						<mx:DataGridColumn headerText="Зам" dataField="col3" visible="false"/>
+						<mx:DataGridColumn headerText="Дууны үг" dataField="col4" visible="false"/>
+						<mx:DataGridColumn headerText="Тоглуулах" width="70">
+							<mx:itemRenderer>
+								<fx:Component>
+									<mx:HBox textAlign="center" paddingLeft="5" horizontalScrollPolicy="off">
+										<mx:LinkButton label="" icon="@Embed('assets/images/bullet_go.png')" click="outerDocument.play()" />
+									</mx:HBox>
+								</fx:Component>
+							</mx:itemRenderer>
+						</mx:DataGridColumn>
+						<mx:DataGridColumn headerText="Устгах" width="70">
+							<mx:itemRenderer>
+								<fx:Component>
+									<mx:HBox textAlign="center" paddingLeft="5" horizontalScrollPolicy="off">
+										<mx:LinkButton label="" icon="@Embed('assets/images/bullet_delete.png')" click="outerDocument.removeFavItem()" />
+									</mx:HBox>
+								</fx:Component>
+							</mx:itemRenderer>
+						</mx:DataGridColumn>
+					</mx:columns>
+				</mx:DataGrid>
+			</s:VGroup>
+		</s:NavigatorContent>
+		<s:NavigatorContent label="Програмын тухай" width="100%" height="100%">
+			<s:TextArea x="56" y="29" text="Ур програмыг зөвхөн өөртөө зориулсан тул ямар нэг алдаа гарч магадгүй.&#xd;Ажлаа хийгээд сууж байхад дуу сонсох зүгээр байдаг. Компьютер дээрх дуунуудаа авч чадалгүй формат хийсэн учир надаас хамааралгүй дажгүй шинэ дуунууд яваа л байдаг ONLINE RADIO маягийн юм хэрэг болоо л өөртөө зориулж хийлээ. &#xd;Хааяаа заваараа шинэ дуу нэмж хийгээ л нэг PLAY дарахад л зөнгөөрөө явж байдаг л зүйл :)&#xd;Зарим үед хэрэг болж магадгүй гэж ганц хоёр товч нэмсийн, түүнээс ганц л PLAY button байлаа. Хэн нэгэнд нь хэрэг болж магад гэж бодоод кодыг нээлттэй SHARE-лэе.&#xd;&#xd;Уг програм дээрх ямар нэг санал, гомдол, шүүмж THE NEW MEDIA GROUP-д ямарч хамааралгүй болно.&#xd;&#xd;Email: purevtsooj.d@nmma.co&#xd;Site: http://purevtsooj.com&#xd;Twitter: http://twitter.com/symbian_mgl&#xd;Facebook: http://facebook.com/purevtsooj" width="483" height="521" borderVisible="false" editable="false"/>
+		</s:NavigatorContent>
+	</mx:TabNavigator>
+	
+	<mx:Button x="721" y="662" icon="@Embed(source='assets/images/control_end_blue.png')" width="88" height="26" label="Дараах" click="onSoundLoaded(event)" />
+	<mx:Button x="629" y="662" icon="@Embed(source='assets/images/control_start_blue.png')" width="84" height="26" label="Өмнөх" click="playPrevSong()" />
+	<s:HSlider x="410" y="669" width="183" id="slider_vol" maximum="1" minimum="0" stepSize="0.01" value="0.5" change="changeVolume()" />
+	<mx:Image x="389" y="666" source="assets/images/sound_low.png" width="16" height="16"/>
+	<s:Label x="388" y="641" text="Artist: Song name" width="473" verticalAlign="middle" textAlign="center" color="#DEDEDE" fontSize="11" id="label_songname"/>
+	<s:TextArea x="10" y="20" width="250" height="270" borderColor="#699018"/>
+	<mx:SWFLoader x="20" y="31" width="230" height="200" source="assets/images/zarlig.png" scaleContent="false" click="gotoZarlig()"/>
+	<mx:Image x="11" y="270" width="50" height="19" source="assets/images/zarlig_stamp.png"/>
+	<mx:Image x="10" y="642" width="179" height="61" source="assets/images/nmma.png"/>
+	<mx:Image x="220" y="670" width="91" height="13" source="assets/images/purevtsooj.com.png" click="gotoPurevtsoojCom()"/>
+	
+</s:WindowedApplication>
